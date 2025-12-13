@@ -28,8 +28,18 @@ async function run() {
     );
     const database = client.db("BookCourier");
     const Books = database.collection("books");
+    const Users = database.collection("users");
 
- 
+    // user api
+    app.post("/user", async (req, res) => {
+      const userData = req.body;
+      try {
+        const result = await Users.insertOne(userData);
+        res.status(201).send(result);
+      } catch {
+        res.status(500).send({ message: "Failed to add User" });
+      }
+    });
 
     app.get("/", (req, res) => {
       res.send("database is running");
