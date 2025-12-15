@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 var cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT;
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.PASS_WORD}@cluster0.vdcsgkx.mongodb.net/?appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -33,13 +33,71 @@ async function run() {
     // user api
     app.post("/user", async (req, res) => {
       const userData = req.body;
-      try {
-        const result = await Users.insertOne(userData);
-        res.status(201).send(result);
-      } catch {
-        res.status(500).send({ message: "Failed to add User" });
+      userData.role = "user";
+
+      const isExist = await Users.findOne({ email: userData.email });
+      if (!isExist) {
+        try {
+          const result = await Users.insertOne(userData);
+          res.status(201).send({
+            resu: result,
+            exist: isExist,
+          });
+        } catch {
+          res.status(500).send({ message: "Failed to add User" });
+        }
+      } else {
+        res.status(500).send({ message: "User Already Exist" });
       }
     });
+
+    // book add api
+    app.post("/addBook", async (req, res) => {
+      const userData = req.body;
+      userData.createdAt = new Date();
+      try {
+        const result = await Books.insertOne(userData);
+        res.status(201).send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to add book" });
+      }
+    });
+
+
+
+    // latest book and all book api basend on query 
+    app.get("/books", async (req, res) => {
+      let { limit } = req.query;
+
+      limit = limit ? parseInt(limit) : 0; 
+
+      const query = Books.find().sort({ createdAt: -1 }).project({
+        title: 1,
+        author: 1,
+        category: 1,
+        price: 1,
+        image1: 1,
+        image2: 1,
+      });
+
+      if (limit > 0) {
+        query.limit(limit);
+      }
+
+      const result = await query.toArray();
+      res.status(200).send(result);
+    });
+
+
+    // post details api 
+    app.get("/books/:bookId",async(req,res)=>{
+      const {bookId}=req.params;
+      const result =await Books.findOne({ _id:new ObjectId(bookId) });
+      res.send(result)
+    })
+
+
+
 
     app.get("/", (req, res) => {
       res.send("database is running");
