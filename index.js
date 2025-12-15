@@ -29,6 +29,7 @@ async function run() {
     const database = client.db("BookCourier");
     const Books = database.collection("books");
     const Users = database.collection("users");
+    const wishList = database.collection("wishList");
 
     // user api
     app.post("/user", async (req, res) => {
@@ -96,6 +97,13 @@ async function run() {
       res.send(result)
     })
 
+
+    // wishList api 
+    app.post("/wishListBook",async(req,res)=>{
+      const wishBook=req.body;
+      const result = await wishList.insertOne(wishBook);
+      res.send(result)
+    })
 
 
 
