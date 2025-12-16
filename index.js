@@ -118,19 +118,40 @@ async function run() {
 
 
 
-    // my order api 
+    // my order api and order on my books api
     app.get("/myOrders",async(req,res)=>{
-      const userEamil=req.query.email;
+      const userEamil = req.query;
       console.log(userEamil);
+      const findQuery = {};
+
+      if (userEamil.lEmail) {
+        findQuery.sellerEmail=userEamil.lEmail;
+      }
+      else{
+        findQuery.email = userEamil.uEmail;
+      }
+      console.log(findQuery);
       
       const result = await orders
-        .find({ email: userEamil })
+        .find(findQuery)
         .sort({ orderAt :-1})
         .toArray();
-       res.send(result) 
+       res.send(result)
     })
 
 
+
+    // delivery status updated api 
+    app.patch("/order/updateStatus",async(req,res)=>{
+      const {id}=req.query;
+      const {updatedStatus}=req.body
+      console.log(id,updatedStatus);
+      const result = await orders.updateOne(
+        { bookId: id },
+        { $set: { status: updatedStatus } }
+      );
+      res.send(result)
+    });
 
 
     app.get("/", (req, res) => {
