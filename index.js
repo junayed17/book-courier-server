@@ -30,6 +30,7 @@ async function run() {
     const Books = database.collection("books");
     const Users = database.collection("users");
     const wishList = database.collection("wishList");
+    const orders = database.collection("orders");
 
     // user api
     app.post("/user", async (req, res) => {
@@ -105,6 +106,15 @@ async function run() {
       res.send(result)
     })
 
+
+    // orders api 
+    app.post("/orders",async(req,res)=>{
+      const orderData=req.body;
+      console.log(orderData);
+      
+      const result=await orders.insertOne(orderData)
+      res.send(result)
+    })
 
 
     app.get("/", (req, res) => {
