@@ -117,6 +117,22 @@ async function run() {
     })
 
 
+
+    // my order api 
+    app.get("/myOrders",async(req,res)=>{
+      const userEamil=req.query.email;
+      console.log(userEamil);
+      
+      const result = await orders
+        .find({ email: userEamil })
+        .sort({ orderAt :-1})
+        .toArray();
+       res.send(result) 
+    })
+
+
+
+
     app.get("/", (req, res) => {
       res.send("database is running");
     });
