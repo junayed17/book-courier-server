@@ -189,6 +189,12 @@ async function run() {
 
 
 
+    // find all user api 
+    app.get("/users",async(req,res)=>{
+      const result = await Users.find().toArray();
+      res.send(result)
+    })
+
 
 
     app.get("/", (req, res) => {
