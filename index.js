@@ -189,6 +189,7 @@ async function run() {
 
 
 
+
     // find all user api 
     app.get("/users",async(req,res)=>{
       const result = await Users.find().toArray();
@@ -210,6 +211,27 @@ async function run() {
       res.send(result)
     })
 
+    // findSpecifiqUser api 
+    app.get("/user",async(req,res)=>{
+      const {email}=req.query;
+      const result = await Users.findOne(
+        { email },
+        { projection: { role: 1, _id: 0 } }
+      )
+      console.log(email);
+      
+      res.send(result)
+    })
+
+
+    // search book api 
+    app.get("/book",async(req,res)=>{
+      const {bookName}=req.query;
+      const result = await Books.find({
+        title: { $regex: bookName, $options: "i" },
+      }).toArray()
+      res.send(result)
+    })
 
 
     app.get("/", (req, res) => {
