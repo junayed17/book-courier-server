@@ -196,6 +196,21 @@ async function run() {
     })
 
 
+    // user role update api
+    app.patch("/users/:id",async(req,res)=>{
+      const {id}=req.params;
+      const {role}=req.body;
+      const findQuery={
+        _id:new ObjectId(id)
+      }
+      const updateQuery={
+       $set: {role:role}
+      }
+      const result=await Users.updateOne(findQuery,updateQuery)
+      res.send(result)
+    })
+
+
 
     app.get("/", (req, res) => {
       res.send("database is running");
