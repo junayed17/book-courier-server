@@ -69,11 +69,13 @@ async function run() {
 
     // latest book and all book api basend on query 
     app.get("/books", async (req, res) => {
-      let { limit } = req.query;
+      let { limit,sort} = req.query;
+
+
 
       limit = limit ? parseInt(limit) : 0; 
-
-      const query = Books.find().sort({ createdAt: -1 }).project({
+      const sortProperty = sort ? { price: parseInt(sort) } : { createdAt: -1 };
+      const query = Books.find().sort(sortProperty).project({
         title: 1,
         author: 1,
         category: 1,
@@ -85,6 +87,7 @@ async function run() {
       if (limit > 0) {
         query.limit(limit);
       }
+
 
       const result = await query.toArray();
       res.status(200).send(result);
