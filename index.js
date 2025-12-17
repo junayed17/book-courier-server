@@ -145,6 +145,35 @@ async function run() {
       res.send(result)
     })
 
+
+    // book post approve api 
+      app.patch("/post/:id", async (req, res) => {
+        const bookId = req.params.id;
+        const {isApprove}=req.body
+        console.log(bookId, isApprove);
+        const updatedQuery = {
+          $set: {
+            isApprove,
+          },
+        };
+        const findQuery = {
+          _id:new ObjectId(bookId)
+        };
+
+        const result = await Books.updateOne(findQuery,updatedQuery)
+        res.send(result);
+      });
+
+
+
+      // delete book by admin 
+      app.delete("/book/:id",async(req,res)=>{
+        const {id}=req.params;      
+        const result=await Books.deleteOne({_id:new ObjectId(id)})
+        res.send(result)
+      })
+
+
     // delivery status updated api 
     app.patch("/order/updateStatus",async(req,res)=>{
       const {id}=req.query;
@@ -157,6 +186,9 @@ async function run() {
       console.log(id, updatedStatus,result);
       res.send(result)
     });
+
+
+
 
 
     app.get("/", (req, res) => {
