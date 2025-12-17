@@ -130,7 +130,6 @@ async function run() {
       else{
         findQuery.email = userEamil.uEmail;
       }
-      console.log(findQuery);
       
       const result = await orders
         .find(findQuery)
@@ -140,16 +139,22 @@ async function run() {
     })
 
 
+    // all post api 
+    app.get("/allPost",async(req,res)=>{
+      const result = await Books.find().sort({ createdAt: -1 }).toArray();
+      res.send(result)
+    })
 
     // delivery status updated api 
     app.patch("/order/updateStatus",async(req,res)=>{
       const {id}=req.query;
-      const {updatedStatus}=req.body
+      const { updatedStatus } = req.body;
       console.log(id,updatedStatus);
       const result = await orders.updateOne(
         { bookId: id },
         { $set: { status: updatedStatus } }
       );
+      console.log(id, updatedStatus,result);
       res.send(result)
     });
 
