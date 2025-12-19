@@ -73,7 +73,9 @@ async function run() {
     app.get("/books/latest", async (req, res) => {
       console.log("etai hit korlam");
 
-      const query = Books.find()
+      const query = Books.find({
+        bookStatus: "Published",
+      })
         .project({
           title: 1,
           author: 1,
@@ -83,6 +85,7 @@ async function run() {
           image2: 1,
           bookStatus: 1,
           isApprove: 1,
+          createdAt: 1,
         })
         .sort({
           createdAt: -1,
@@ -100,16 +103,20 @@ async function run() {
       if (sort) {
         sortProperty.price = parseInt(sort);
       }
-      const query = Books.find().sort(sortProperty).project({
-        title: 1,
-        author: 1,
-        category: 1,
-        price: 1,
-        image1: 1,
-        image2: 1,
-        bookStatus: 1,
-        isApprove: 1,
-      });
+      const query = Books.find({
+        bookStatus: "Published",
+      })
+        .sort(sortProperty)
+        .project({
+          title: 1,
+          author: 1,
+          category: 1,
+          price: 1,
+          image1: 1,
+          image2: 1,
+          bookStatus: 1,
+          isApprove: 1,
+        });
       const result = await query.toArray();
       res.status(200).send(result);
     });
@@ -198,6 +205,16 @@ async function run() {
       res.send(result);
     });
 
+    
+app.delete("/order/delete/:id", async (req, res) => {
+  const { id } = req.params;
+  const result = await orders.deleteOne({ bookId: id });
+  console.log(result);
+  
+  res.send(result);
+});
+
+
     // api for payment
     app.get("/payment/:id", async (req, res) => {
       const { id } = req.params;
@@ -238,7 +255,6 @@ async function run() {
       const findQuery = {
         _id: new ObjectId(bookId),
       };
-      console.log(bookId, isApprove, updatedObj);
 
       const result = await Books.updateOne(findQuery, updatedQuery);
       res.send(result);
@@ -267,6 +283,8 @@ async function run() {
     // find all user api
     app.get("/users", async (req, res) => {
       const result = await Users.find().toArray();
+      console.log("iam hitting");
+      
       res.send(result);
     });
 
@@ -364,7 +382,7 @@ async function run() {
     //  roleFindOut api
     app.get("/role", async (req, res) => {
       const { email } = req.query;
-      console.log(email);
+      console.log(email ,"i am running from here");
 
       const result = await Users.findOne({
         email,
