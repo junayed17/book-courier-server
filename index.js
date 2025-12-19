@@ -27,9 +27,9 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
     const database = client.db("BookCourier");
     const Books = database.collection("books");
     const Users = database.collection("users");
@@ -60,7 +60,7 @@ async function run() {
     // book add api
     app.post("/addBook", async (req, res) => {
       const userData = req.body;
-      userData.createdAt = new Date();
+      userData.reviews=[];
       try {
         const result = await Books.insertOne(userData);
         res.status(201).send(result);
@@ -69,12 +69,37 @@ async function run() {
       }
     });
 
-    // latest book and all book api basend on query
-    app.get("/books", async (req, res) => {
-      let { limit, sort } = req.query;
+    // latest book api
+    app.get("/books/latest", async (req, res) => {
+      console.log("etai hit korlam");
 
-      limit = limit ? parseInt(limit) : 0;
-      const sortProperty = sort ? { price: parseInt(sort) } : { createdAt: -1 };
+      const query = Books.find()
+        .project({
+          title: 1,
+          author: 1,
+          category: 1,
+          price: 1,
+          image1: 1,
+          image2: 1,
+          bookStatus: 1,
+          isApprove: 1,
+        })
+        .sort({
+          createdAt: -1,
+        })
+        .limit(6);
+
+      const result = await query.toArray();
+      res.status(200).send(result);
+    });
+
+    // all book api
+    app.get("/allBook", async (req, res) => {
+      let { sort } = req.query;
+      const sortProperty = {};
+      if (sort) {
+        sortProperty.price = parseInt(sort);
+      }
       const query = Books.find().sort(sortProperty).project({
         title: 1,
         author: 1,
@@ -82,18 +107,49 @@ async function run() {
         price: 1,
         image1: 1,
         image2: 1,
+        bookStatus: 1,
+        isApprove: 1,
       });
-
-      if (limit > 0) {
-        query.limit(limit);
-      }
-
       const result = await query.toArray();
       res.status(200).send(result);
     });
 
+
+
+  //  personal book findOut api 
+    app.get("/books", async (req, res) => {
+      let { sort, email } = req.query;
+      console.log(email, sort);
+      const searchEmail = {};
+      if (email) {
+        searchEmail.ownerEmail = email;
+      }
+
+      const sortProperty = sort ? { price: parseInt(sort) } : { createdAt: -1 };
+      const query = Books.find(searchEmail).sort(sortProperty).project({
+        title: 1,
+        author: 1,
+        category: 1,
+        price: 1,
+        image1: 1,
+        image2: 1,
+        bookStatus: 1,
+        isApprove: 1,
+      });
+      const result = await query.toArray();
+      res.status(200).send(result);
+    });
+
+    // book delete api
+
+    app.delete("/books/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await Books.deleteOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
     // post details api
-    app.get("/books/:bookId", async (req, res) => {
+    app.get("/book/:bookId", async (req, res) => {
       const { bookId } = req.params;
       const result = await Books.findOne({ _id: new ObjectId(bookId) });
       res.send(result);
@@ -118,14 +174,22 @@ async function run() {
     // my order api and order on my books api
     app.get("/myOrders", async (req, res) => {
       const userEamil = req.query;
-      console.log(userEamil);
-      const findQuery = {};
+      const findQuery = {
+        email: userEamil.uEmail,
+      };
 
-      if (userEamil.lEmail) {
-        findQuery.sellerEmail = userEamil.lEmail;
-      } else {
-        findQuery.email = userEamil.uEmail;
-      }
+      const result = await orders
+        .find(findQuery)
+        .sort({ orderAt: -1 })
+        .toArray();
+      res.send(result);
+    });
+    //order on my books api
+    app.get("/ordersOnMine", async (req, res) => {
+      const userEamil = req.query;
+      const findQuery = {
+        sellerEmail: userEamil.lEmail,
+      };
 
       const result = await orders
         .find(findQuery)
@@ -134,12 +198,12 @@ async function run() {
       res.send(result);
     });
 
-    // api for payment 
-    app.get("/payment/:id",async(req,res)=>{
-      const {id}=req.params;
-      const result = await orders.findOne({ bookId: id });  
-      res.send(result)
-    })
+    // api for payment
+    app.get("/payment/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await orders.findOne({ bookId: id });
+      res.send(result);
+    });
 
     // all post api
     app.get("/allPost", async (req, res) => {
@@ -150,16 +214,31 @@ async function run() {
     // book post approve api
     app.patch("/post/:id", async (req, res) => {
       const bookId = req.params.id;
-      const { isApprove } = req.body;
-      console.log(bookId, isApprove);
+      const { isApprove, updateData } = req.body;
+
+      const updatedObj = {};
+      if (isApprove) {
+        updatedObj.isApprove = isApprove;
+      } else {
+        updatedObj.author = updateData.author;
+        updatedObj.bookStatus = updateData.bookStatus;
+        updatedObj.category = updateData.category;
+        updatedObj.contact = updateData.contact;
+        (updatedObj.edition = updateData.edition),
+          (updatedObj.district = updateData.district);
+        updatedObj.instruction = updateData.instruction;
+        updatedObj.price = updateData.price;
+        updatedObj.publication = updateData.publication;
+        updatedObj.region = updateData.region;
+        updatedObj.title = updateData.title;
+      }
       const updatedQuery = {
-        $set: {
-          isApprove,
-        },
+        $set: updatedObj,
       };
       const findQuery = {
         _id: new ObjectId(bookId),
       };
+      console.log(bookId, isApprove, updatedObj);
 
       const result = await Books.updateOne(findQuery, updatedQuery);
       res.send(result);
@@ -229,8 +308,8 @@ async function run() {
     // payment Api
     app.post("/payment-checkout-session", async (req, res) => {
       const paymentData = req.body;
-      
-      const amount = parseInt(paymentData.cost)*100;
+
+      const amount = parseInt(paymentData.cost) * 100;
       const session = await stripe.checkout.sessions.create({
         line_items: [
           {
@@ -254,6 +333,75 @@ async function run() {
       });
       res.send({ url: session.url });
     });
+
+    // payment status update api
+    app.patch("/payment", async (req, res) => {
+      const { sessionId } = req.query;
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const sendAndUpdateObj = {
+        payment: session.payment_status,
+        transectionId: session.payment_intent,
+        method: session.payment_method_types[0],
+        paid_amount_total: session.amount_total,
+      };
+      const updatedQuery = {
+        $set: sendAndUpdateObj,
+      };
+      const searchQuery = {
+        email: session.customer_email,
+        bookId: session.metadata.parcelId,
+      };
+
+      const result = await orders.updateOne(searchQuery, updatedQuery);
+
+      res.send({
+        updateResult: result,
+        pamentData: sendAndUpdateObj,
+      });
+    });
+
+    //  roleFindOut api
+    app.get("/role", async (req, res) => {
+      const { email } = req.query;
+      console.log(email);
+
+      const result = await Users.findOne({
+        email,
+      });
+      res.send(result);
+    });
+
+
+
+
+
+    // book review api 
+    app.patch("/books/:id/review", async (req, res) => {
+      const id = req.params.id;
+
+      const review = req.body;
+
+      const result = await Books.updateOne(
+        { _id: new ObjectId(id) },
+        { $push: { reviews: review } }
+      );
+      res.send(result);
+    });
+
+    app.get("/order/:id",async(req,res)=>{
+      const {id}=req.params;
+      const {email}=req.query;
+      const result = await orders.findOne({
+        bookId:id,
+        email
+      })
+    res.send(result)
+    })
+
+
+
+
 
     app.get("/", (req, res) => {
       res.send("database is running");
