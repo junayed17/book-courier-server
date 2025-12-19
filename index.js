@@ -60,7 +60,7 @@ async function run() {
     // book add api
     app.post("/addBook", async (req, res) => {
       const userData = req.body;
-      userData.reviews=[];
+      userData.reviews = [];
       try {
         const result = await Books.insertOne(userData);
         res.status(201).send(result);
@@ -121,9 +121,7 @@ async function run() {
       res.status(200).send(result);
     });
 
-
-
-  //  personal book findOut api 
+    //  personal book findOut api
     app.get("/books", async (req, res) => {
       let { sort, email } = req.query;
       console.log(email, sort);
@@ -205,15 +203,58 @@ async function run() {
       res.send(result);
     });
 
-    
-app.delete("/order/delete/:id", async (req, res) => {
-  const { id } = req.params;
-  const result = await orders.deleteOne({ bookId: id });
-  console.log(result);
-  
-  res.send(result);
-});
+    // book unpublish api
 
+    app.patch("/book/unpublish/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await Books.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            bookStatus: "Unpublished",
+          },
+        }
+      );
+
+      res.send(result);
+    });
+
+    // admin publish or unPublish book api
+    app.patch("/book/pubUnpub/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const result = await Books.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            bookStatus: status,
+          },
+        }
+      );
+
+      res.send(result);
+    });
+
+    // wish list findOut api
+
+    app.get("/wishList", async (req, res) => {
+  
+      
+      const { email } = req.query;
+      
+      const result = await wishList.find({ user:email }).toArray()
+      res.send(result);
+    });
+
+    // user and librarian delete order api
+    app.delete("/order/delete/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await orders.deleteOne({ bookId: id });
+
+      res.send(result);
+    });
 
     // api for payment
     app.get("/payment/:id", async (req, res) => {
@@ -283,8 +324,7 @@ app.delete("/order/delete/:id", async (req, res) => {
     // find all user api
     app.get("/users", async (req, res) => {
       const result = await Users.find().toArray();
-      console.log("iam hitting");
-      
+
       res.send(result);
     });
 
@@ -382,19 +422,13 @@ app.delete("/order/delete/:id", async (req, res) => {
     //  roleFindOut api
     app.get("/role", async (req, res) => {
       const { email } = req.query;
-      console.log(email ,"i am running from here");
-
       const result = await Users.findOne({
         email,
       });
       res.send(result);
     });
 
-
-
-
-
-    // book review api 
+    // book review api
     app.patch("/books/:id/review", async (req, res) => {
       const id = req.params.id;
 
@@ -407,19 +441,15 @@ app.delete("/order/delete/:id", async (req, res) => {
       res.send(result);
     });
 
-    app.get("/order/:id",async(req,res)=>{
-      const {id}=req.params;
-      const {email}=req.query;
+    app.get("/order/:id", async (req, res) => {
+      const { id } = req.params;
+      const { email } = req.query;
       const result = await orders.findOne({
-        bookId:id,
-        email
-      })
-    res.send(result)
-    })
-
-
-
-
+        bookId: id,
+        email,
+      });
+      res.send(result);
+    });
 
     app.get("/", (req, res) => {
       res.send("database is running");
