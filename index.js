@@ -27,9 +27,6 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // console.log(
-    //   "Pinged your deployment. You successfully connected to MongoDB!"
-    // );
     const database = client.db("BookCourier");
     const Books = database.collection("books");
     const Users = database.collection("users");
@@ -71,7 +68,6 @@ async function run() {
 
     // latest book api
     app.get("/books/latest", async (req, res) => {
-      console.log("etai hit korlam");
 
       const query = Books.find({
         bookStatus: "Published",
@@ -170,8 +166,6 @@ async function run() {
     // orders api
     app.post("/orders", async (req, res) => {
       const orderData = req.body;
-      console.log(orderData);
-
       const result = await orders.insertOne(orderData);
       res.send(result);
     });
@@ -312,12 +306,10 @@ async function run() {
     app.patch("/order/updateStatus", async (req, res) => {
       const { id } = req.query;
       const { updatedStatus } = req.body;
-      console.log(id, updatedStatus);
       const result = await orders.updateOne(
         { bookId: id },
         { $set: { status: updatedStatus } }
       );
-      console.log(id, updatedStatus, result);
       res.send(result);
     });
 
@@ -349,8 +341,6 @@ async function run() {
         { email },
         { projection: { role: 1, _id: 0 } }
       );
-      console.log(email);
-
       res.send(result);
     });
 
