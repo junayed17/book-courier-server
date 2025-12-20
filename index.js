@@ -175,12 +175,12 @@ async function run() {
       const userEamil = req.query;
       const findQuery = {
         email: userEamil.uEmail,
-      };
-
+      };      
       const result = await orders
         .find(findQuery)
         .sort({ orderAt: -1 })
         .toArray();
+
       res.send(result);
     });
     //order on my books api
@@ -253,7 +253,8 @@ async function run() {
     // api for payment
     app.get("/payment/:id", async (req, res) => {
       const { id } = req.params;
-      const result = await orders.findOne({ bookId: id });
+      const {email}=req.query
+      const result = await orders.findOne({ bookId: id,email });
       res.send(result);
     });
 
@@ -400,7 +401,6 @@ async function run() {
         email: session.customer_email,
         bookId: session.metadata.parcelId,
       };
-
       const result = await orders.updateOne(searchQuery, updatedQuery);
 
       res.send({
