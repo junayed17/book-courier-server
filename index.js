@@ -86,7 +86,7 @@ async function run() {
         .sort({
           createdAt: -1,
         })
-        .limit(6);
+        .limit(8);
 
       const result = await query.toArray();
       res.status(200).send(result);
@@ -245,7 +245,7 @@ async function run() {
     // user and librarian delete order api
     app.delete("/order/delete/:id", async (req, res) => {
       const { id } = req.params;
-      const result = await orders.deleteOne({ bookId: id });
+      const result = await orders.deleteOne({_id:new ObjectId(id)});
 
       res.send(result);
     });
@@ -254,7 +254,7 @@ async function run() {
     app.get("/payment/:id", async (req, res) => {
       const { id } = req.params;
       const {email}=req.query
-      const result = await orders.findOne({ bookId: id,email });
+      const result = await orders.findOne({ _id:new ObjectId(id),email });
       res.send(result);
     });
 
@@ -308,7 +308,7 @@ async function run() {
       const { id } = req.query;
       const { updatedStatus } = req.body;
       const result = await orders.updateOne(
-        { bookId: id },
+        { _id: new ObjectId(id) },
         { $set: { status: updatedStatus } }
       );
       res.send(result);
@@ -397,10 +397,14 @@ async function run() {
       const updatedQuery = {
         $set: sendAndUpdateObj,
       };
+
+    
+      
       const searchQuery = {
         email: session.customer_email,
-        bookId: session.metadata.parcelId,
+        _id: new ObjectId(session.metadata.parcelId),
       };
+      
       const result = await orders.updateOne(searchQuery, updatedQuery);
 
       res.send({
@@ -440,6 +444,130 @@ async function run() {
       });
       res.send(result);
     });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+app.get("/books-stats", async (req, res) => {
+  try {
+    const email = req.query.email;
+    let filter = {};
+    if (email) filter = { ownerEmail: email };
+
+    const [categoryStats, statusStats, totalPosts] = await Promise.all([
+      Books.aggregate([
+        { $match: filter },
+        { $group: { _id: "$category", count: { $sum: 1 } } },
+      ]).toArray(),
+      // এই এগ্রিগেশনটি Published এবং Unpublished আলাদাভাবে গুনে আনবে
+      Books.aggregate([
+        { $match: filter },
+        { $group: { _id: "$bookStatus", count: { $sum: 1 } } },
+      ]).toArray(),
+      Books.countDocuments(filter),
+    ]);
+    const totalUser = await Users.countDocuments();
+
+    res.status(200).send({
+      totalPosts,
+      categories: categoryStats,
+      statusBreakdown: statusStats,
+      totalUser
+    });
+  } catch (error) {
+    res.status(500).send({ message: "Error", error });
+  }
+});
+
+app.get("/books-stats-librian", async (req, res) => {
+  try {
+    const email = req.query.email;
+    let filter = {};
+    let orderFilter = {};
+
+    // ইমেইল থাকলে নির্দিষ্ট ইউজারের ডাটা, না থাকলে সবার ডাটা (Admin View)
+    if (email) {
+      filter = { ownerEmail: email };
+      orderFilter = { sellerEmail: email };
+    }
+console.log(email);
+
+    const [categoryStats, statusStats, totalPosts, totalOrders, bookAnalytics] =
+      await Promise.all([
+        // ১. ক্যাটাগরি স্ট্যাটস
+        Books.aggregate([
+          { $match: filter },
+          { $group: { _id: "$category", count: { $sum: 1 } } },
+        ]).toArray(),
+
+        // ২. পাবলিশড/আনপাবলিশড স্ট্যাটস
+        Books.aggregate([
+          { $match: filter },
+          { $group: { _id: "$bookStatus", count: { $sum: 1 } } },
+        ]).toArray(),
+
+        // ৩. মোট বইয়ের সংখ্যা
+        Books.countDocuments(filter),
+
+        // ৪. মোট অর্ডারের সংখ্যা (Seller Email অনুযায়ী)
+        orders.countDocuments(orderFilter),
+
+        // ৫. প্রতিটি বইয়ের নাম এবং অর্ডার সংখ্যা (Lookup ব্যবহার করে)
+        Books.aggregate([
+          { $match: filter },
+          {
+            $addFields: { stringId: { $toString: "$_id" } },
+          },
+          {
+            $lookup: {
+              from: "orders",
+              localField: "stringId",
+              foreignField: "bookId",
+              as: "ordersCount",
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              name: "$title",
+              stock: { $literal: 1 }, // ডিফল্ট স্টক ১
+              order: { $size: "$ordersCount" },
+            },
+          },
+        ]).toArray(),
+      ]);
+
+    // তোমার দেওয়া ফরম্যাট অনুযায়ী রেসপন্স পাঠানো হচ্ছে
+    res.status(200).send({
+      totalPosts, // সংখ্যা (7)
+      bookAnalytics, // এরে (বইয়ের নাম, স্টক, অর্ডার)
+      statusBreakdown: statusStats, // এরে (Published/Unpublished)
+      totalOrder: totalOrders, // সংখ্যা (মোট অর্ডার)
+    });
+  } catch (error) {
+    console.error("Stats Error:", error);
+    res.status(500).send({ message: "Error fetching data", error });
+  }
+});
+
+
+
+
 
     app.get("/", (req, res) => {
       res.send("database is running");
